@@ -5,7 +5,6 @@ from utils import WriteToFile
 
 STATES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-
 class DFA:
     def __init__(self, trans_table, symbols, states, final_nfa_state, regex):
 
@@ -129,7 +128,7 @@ class DFA:
                             break
 
     def EvalRegex(self):
-        curr_state = 'A'
+        curr_state = self.initial_state
         
         # Si no hay estados o trans_func está vacío, retornar 'No'
         if not self.states or not self.trans_func:
@@ -168,7 +167,7 @@ class DFA:
             print("Error: No se pudieron crear nodos para el DFA.")
             return
             
-        self.EvaluateClosure([], 0, 'A')
+        self.EvaluateClosure([], 0, self.initial_state)
         
         # Verificar que se hayan creado estados
         if not self.states:
@@ -178,7 +177,7 @@ class DFA:
     def GraphDFA(self):
         states = set(self.trans_func.keys())
         alphabet = set(self.symbols)
-        initial_state = 'A'
+        initial_state = self.initial_state
         
         # Verificar que states no esté vacío
         if not states:
