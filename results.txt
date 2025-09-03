@@ -1,0 +1,35 @@
+=== RESULTADOS DE PRUEBAS DE AUTÓMATAS FINITOS ===
+
+Total de casos de prueba: 3
+----------------------------------------------------------------------
+
+CASO DE PRUEBA 1:
+Expresión: [a-c]
+Cadena de prueba: 'abc'
+Resultado NFA: Aceptada
+Tiempo NFA: 0.00e+00 segundos
+Resultado DFA: Aceptada
+Tiempo DFA: 0.00e+00 segundos
+
+----------------------------------------------------------------------
+
+CASO DE PRUEBA 2:
+Expresión: abc
+Cadena de prueba: 'a'
+Resultado NFA: Aceptada
+Tiempo NFA: 0.00e+00 segundos
+Resultado DFA: Aceptada
+Tiempo DFA: 0.00e+00 segundos
+
+----------------------------------------------------------------------
+
+CASO DE PRUEBA 3:
+Expresión: ((e|a)|b*)*
+Cadena de prueba: 'aaaaaaaa'
+Resultado NFA: Aceptada
+Tiempo NFA: 0.00e+00 segundos
+Resultado DFA: Aceptada
+Tiempo DFA: 0.00e+00 segundos
+
+----------------------------------------------------------------------
+

@@ -10,6 +10,7 @@ class TokenType(Enum):
     QUESTION = 5
     LPAR = 6
     RPAR = 7
+    RANGE = 8  # For character ranges like [a-f]
 
 
 class Token:

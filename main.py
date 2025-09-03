@@ -2,147 +2,227 @@ from reader import Reader
 from parsing import Parser
 from nfa import NFA
 from dfa import DFA
-from direct_dfa import DDFA
-from direct_reader import DirectReader
 from time import process_time
+import os
 
-program_title = '''
+# File names
+EXPRESSIONS_FILE = 'expressions.txt'
+STRINGS_FILE = 'test_strings.txt'
+RESULTS_FILE = 'results.txt'
 
-#        FINITE AUTOMATA        #
+def read_file_lines(filename):
+    """Read lines from a file, skipping comments and empty lines"""
+    with open(filename, 'r') as f:
+        return [line.strip() for line in f if line.strip() and not line.strip().startswith('#')]
 
-Generate NFA's of DFA's based on a regular epression and compare times simulating a string! NOTE: for epsilon expression, please use the letter "e"
-'''
+def process_expression(expr, test_string):
+    """Process a single expression and test string"""
+    try:
+        # Parse the regular expression
+        reader = Reader(expr)
+        tokens = list(reader.CreateTokens())
+        parser = Parser(iter(tokens))
+        tree = parser.Parse()
+        
+        # Process with NFA
+        nfa = NFA(tree, reader.GetSymbols(), test_string)
+        nfa_start = process_time()
+        nfa_result = nfa.EvalRegex()
+        nfa_time = process_time() - nfa_start
+        
+        # Process with DFA
+        dfa = DFA(nfa.trans_func, nfa.symbols, nfa.curr_state, nfa.accepting_states, test_string)
+        dfa.TransformNFAToDFA()
+        dfa_start = process_time()
+        dfa_result = dfa.EvalRegex()
+        dfa_time = process_time() - dfa_start
+        
+        return {
+            'expression': expr,
+            'test_string': test_string,
+            'nfa_result': nfa_result,
+            'nfa_time': nfa_time,
+            'dfa_result': dfa_result,
+            'dfa_time': dfa_time,
+            'success': True
+        }
+    except Exception as e:
+        return {
+            'expression': expr,
+            'test_string': test_string,
+            'error': str(e),
+            'success': False
+        }
 
-main_menu = '''
-What would you like to do?
-1. Set a regular expression
-2. Test a string with the given regular expression
-0. Exit out of the program
-'''
+def show_menu(test_cases):
+    """Show the main menu and handle user input"""
+    while True:
+        print("\n=== MENÚ PRINCIPAL ===")
+        print("1. Ver resultados de pruebas")
+        print("2. Generar gráficas para un caso de prueba")
+        print("3. Salir")
+        
+        choice = input("\nSeleccione una opción: ").strip()
+        
+        if choice == '1':
+            show_test_results(test_cases)
+        elif choice == '2':
+            generate_graphs_menu(test_cases)
+        elif choice == '3':
+            print("¡Hasta luego!")
+            return
+        else:
+            print("Opción no válida. Por favor, intente de nuevo.")
 
-submenu = '''
-Select one of the above to test your regular expression:
+def show_test_results(test_cases):
+    """Show the test results"""
+    print("\n=== RESULTADOS DE PRUEBAS ===")
+    for i, case in enumerate(test_cases, 1):
+        print(f"\n--- Caso de Prueba {i} ---")
+        print(f"Expresión: {case['expression']}")
+        print(f"Cadena de prueba: '{case['test_string']}'")
+        
+        if case['success']:
+            print(f"  Resultado NFA: {'Aceptada' if case['nfa_result'] else 'Rechazada'}")
+            print(f"  Tiempo NFA: {case['nfa_time']:.2e} segundos")
+            print(f"  Resultado DFA: {'Aceptada' if case['dfa_result'] else 'Rechazada'}")
+            print(f"  Tiempo DFA: {case['dfa_time']:.2e} segundos")
+        else:
+            print(f"  Error: {case['error']}")
 
-    1. Use Thompson to generate an NFA and Powerset construction to generate an DFA.
-    2. Use direct DFA method.
-    0. Back to main menu.
-'''
-thompson_msg = '''
-    # THOMPSON AND POWERSET CONSTRUCION # '''
-direct_dfa_msg = '''
-    # DIRECT DFA CONSTRUCION # '''
-invalid_opt = '''
-Err: That's not a valid option!
-'''
-generate_diagram_msg = '''
-Would you like to generate and view the diagram? [y/n] (default: n)'''
-type_regex_msg = '''
-Type in a regular expression '''
-type_string_msg = '''
-Type in a string '''
+def generate_graphs_menu(test_cases):
+    """Show menu to generate graphs for a test case"""
+    if not test_cases:
+        print("No hay casos de prueba disponibles.")
+        return
+    
+    print("\n=== GENERAR GRÁFICAS ===")
+    print("Casos de prueba disponibles:")
+    for i, case in enumerate(test_cases, 1):
+        status = "✓" if case['success'] else "✗"
+        print(f"{i}. {status} Expresión: {case['expression']}")
+        print(f"   Cadena: '{case['test_string']}'")
+    
+    while True:
+        try:
+            choice = input("\nSeleccione el número del caso de prueba (o '0' para cancelar): ").strip()
+            if choice == '0':
+                return
+                
+            case_num = int(choice)
+            if 1 <= case_num <= len(test_cases):
+                generate_graphs(test_cases[case_num - 1], case_num)
+                break
+            else:
+                print("Número de caso no válido. Intente de nuevo.")
+        except ValueError:
+            print("Por favor ingrese un número válido.")
+
+def generate_graphs(test_case, case_num):
+    """Generate NFA and DFA graphs for a test case"""
+    if not test_case['success']:
+        print("No se pueden generar gráficos para un caso con errores.")
+        return
+    
+    try:
+        # Process the expression to get the automata
+        reader = Reader(test_case['expression'])
+        tokens = list(reader.CreateTokens())
+        parser = Parser(iter(tokens))
+        tree = parser.Parse()
+        
+        # Create NFA
+        nfa = NFA(tree, reader.GetSymbols(), test_case['test_string'])
+        
+        # Create DFA from NFA
+        dfa = DFA(nfa.trans_func, nfa.symbols, nfa.curr_state, nfa.accepting_states, test_case['test_string'])
+        dfa.TransformNFAToDFA()
+        
+        # Generate graphs
+        print("\nGenerando gráficos...")
+        
+        # Generate NFA graph
+        nfa_pdf = f"nfa_case_{case_num}.pdf"
+        nfa.WriteNFADiagram()
+        if os.path.exists("nfa_diagram.pdf"):
+            os.rename("nfa_diagram.pdf", nfa_pdf)
+            print(f"Gráfico NFA guardado como: {nfa_pdf}")
+        
+        # Generate DFA graph
+        dfa_pdf = f"dfa_case_{case_num}.pdf"
+        dfa.GraphDFA()
+        if os.path.exists("dfa_diagram.pdf"):
+            os.rename("dfa_diagram.pdf", dfa_pdf)
+            print(f"Gráfico DFA guardado como: {dfa_pdf}")
+        
+        print("¡Gráficos generados exitosamente!")
+        
+    except Exception as e:
+        print(f"Error al generar los gráficos: {str(e)}")
+
+def main():
+    print("\n=== PROBADOR DE AUTÓMATAS FINITOS ===\n")
+    print(f"Leyendo expresiones de: {EXPRESSIONS_FILE}")
+    print(f"Leyendo cadenas de prueba de: {STRINGS_FILE}")
+    print(f"Los resultados se guardarán en: {RESULTS_FILE}\n")
+    
+    # Read input files
+    try:
+        expressions = read_file_lines(EXPRESSIONS_FILE)
+        test_strings = read_file_lines(STRINGS_FILE)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        return
+    
+    # Check if files have the same number of test cases
+    if len(expressions) != len(test_strings):
+        print(f"Advertencia: {EXPRESSIONS_FILE} y {STRINGS_FILE} tienen diferente cantidad de casos de prueba")
+        print(f"Usando el mínimo de {min(len(expressions), len(test_strings))} casos de prueba\n")
+    
+    # Process each test case
+    test_cases = []
+    for i, (expr, test_str) in enumerate(zip(expressions, test_strings), 1):
+        print(f"\n--- Procesando Caso {i} ---")
+        print(f"Expresión: {expr}")
+        print(f"Cadena de prueba: '{test_str}'")
+        
+        result = process_expression(expr, test_str)
+        test_cases.append(result)
+        
+        if result['success']:
+            print("  Resultado NFA:", "Aceptada" if result['nfa_result'] else "Rechazada")
+            print(f"  Tiempo NFA: {result['nfa_time']:.2e} segundos")
+            print("  Resultado DFA:", "Aceptada" if result['dfa_result'] else "Rechazada")
+            print(f"  Tiempo DFA: {result['dfa_time']:.2e} segundos")
+        else:
+            print(f"  Error: {result['error']}")
+    
+    # Save results to file
+    with open(RESULTS_FILE, 'w', encoding='utf-8') as f:
+        f.write("=== RESULTADOS DE PRUEBAS DE AUTÓMATAS FINITOS ===\n\n")
+        f.write(f"Total de casos de prueba: {len(test_cases)}\n")
+        f.write("-" * 70 + "\n\n")
+        
+        for i, result in enumerate(test_cases, 1):
+            f.write(f"CASO DE PRUEBA {i}:\n")
+            f.write(f"Expresión: {result['expression']}\n")
+            f.write(f"Cadena de prueba: '{result['test_string']}'\n")
+            
+            if result['success']:
+                f.write(f"Resultado NFA: {'Aceptada' if result['nfa_result'] else 'Rechazada'}\n")
+                f.write(f"Tiempo NFA: {result['nfa_time']:.2e} segundos\n")
+                f.write(f"Resultado DFA: {'Aceptada' if result['dfa_result'] else 'Rechazada'}\n")
+                f.write(f"Tiempo DFA: {result['dfa_time']:.2e} segundos\n")
+            else:
+                f.write(f"Error: {result['error']}\n")
+            
+            f.write("\n" + "-" * 70 + "\n\n")
+    
+    print(f"\n=== Procesamiento completado ===")
+    print(f"Resultados guardados en: {os.path.abspath(RESULTS_FILE)}")
+    
+    # Show the main menu
+    show_menu(test_cases)
 
 if __name__ == "__main__":
-    print(program_title)
-    opt = None
-    regex = None
-    method = None
-
-    while opt != 0:
-        print(main_menu)
-        opt = input('> ')
-
-        if opt == '1':
-            print(type_regex_msg)
-            regex = input('> ')
-
-            try:
-                reader = Reader(regex)
-                tokens = reader.CreateTokens()
-                parser = Parser(tokens)
-                tree = parser.Parse()
-
-                direct_reader = DirectReader(regex)
-                direct_tokens = direct_reader.CreateTokens()
-                direct_parser = Parser(direct_tokens)
-                direct_tree = direct_parser.Parse()
-                print('\n\tExpression accepted!')
-                print('\tParsed tree:', tree)
-
-            except AttributeError as e:
-                print(f'\n\tERR: Invalid expression (missing parenthesis)')
-
-            except Exception as e:
-                print(f'\n\tERR: {e}')
-
-        if opt == '2':
-            if not regex:
-                print('\n\tERR: You need to set a regular expression first!')
-                opt = None
-            else:
-                print(submenu)
-                method = input('> ')
-
-                if method == '1':
-                    print(thompson_msg)
-                    print(type_string_msg)
-                    regex_input = input('> ')
-
-                    nfa = NFA(tree, reader.GetSymbols(), regex_input)
-                    start_time = process_time()
-                    nfa_regex = nfa.EvalRegex()
-                    stop_time = process_time()
-
-                    print('\nTime to evaluate: {:.5E} seconds'.format(
-                        stop_time - start_time))
-                    print('Does the string belongs to the regex (NFA)?')
-                    print('>', nfa_regex)
-
-                    dfa = DFA(nfa.trans_func, nfa.symbols,
-                              nfa.curr_state, nfa.accepting_states, regex_input)
-                    dfa.TransformNFAToDFA()
-                    start_time = process_time()
-                    dfa_regex = dfa.EvalRegex()
-                    stop_time = process_time()
-                    print('\nTime to evaluate: {:.5E} seconds'.format(
-                        stop_time - start_time))
-                    print('Does the string belongs to the regex (DFA)?')
-                    print('>', dfa_regex)
-
-                    print(generate_diagram_msg)
-                    generate_diagram = input('> ')
-
-                    if generate_diagram == 'y':
-                        nfa.WriteNFADiagram()
-                        dfa.GraphDFA()
-
-                elif method == '2':
-                    print(direct_dfa_msg)
-                    print(type_string_msg)
-                    regex_input = input('> ')
-                    ddfa = DDFA(
-                        direct_tree, direct_reader.GetSymbols(), regex_input)
-                    start_time = process_time()
-                    ddfa_regex = ddfa.EvalRegex()
-                    stop_time = process_time()
-                    print('\nTime to evaluate: {:.5E} seconds'.format(
-                        stop_time - start_time))
-                    print('Does the string belongs to the regex?')
-                    print('>', ddfa_regex)
-
-                    print(generate_diagram_msg)
-                    generate_diagram = input('> ')
-
-                    if generate_diagram == 'y':
-                        ddfa.GraphDFA()
-
-                    ddfa = None
-
-                elif method == '3':
-                    continue
-
-                else:
-                    print(invalid_opt)
-
-        elif opt == '0':
-            print('See you later!')
-            exit(1)
+    main()

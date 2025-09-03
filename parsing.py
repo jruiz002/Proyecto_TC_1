@@ -29,6 +29,12 @@ class Parser:
         elif token.type == TokenType.LETTER:
             self.Next()
             return Letter(token.value)
+            
+        elif token.type == TokenType.RANGE:
+            self.Next()
+            # The range has already been expanded in the reader, so we can just return the first character
+            # as the rest are handled by the OR operations added in the reader
+            return Letter(token.value[0])
 
     def NewOperator(self):
         res = self.NewSymbol()
