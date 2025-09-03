@@ -1,148 +1,83 @@
-from reader import Reader
+from reader import ThompsonReader
 from parsing import Parser
 from nfa import NFA
 from dfa import DFA
-from direct_dfa import DDFA
-from direct_reader import DirectReader
-from time import process_time
+import os
+from time import time
+
+os.makedirs('output', exist_ok=True)
+from input_handler import InputHandler
 
 program_title = '''
 
-#        FINITE AUTOMATA        #
+#        AUTÓMATAS FINITOS        #
 
-Generate NFA's of DFA's based on a regular epression and compare times simulating a string! NOTE: for epsilon expression, please use the letter "e"
+Genera NFA y DFA basados en una expresión regular y compara tiempos simulando una cadena!
 '''
-
-main_menu = '''
-What would you like to do?
-1. Set a regular expression
-2. Test a string with the given regular expression
-0. Exit out of the program
-'''
-
-submenu = '''
-Select one of the above to test your regular expression:
-
-    1. Use Thompson to generate an NFA and Powerset construction to generate an DFA.
-    2. Use direct DFA method.
-    0. Back to main menu.
-'''
-thompson_msg = '''
-    # THOMPSON AND POWERSET CONSTRUCION # '''
 direct_dfa_msg = '''
-    # DIRECT DFA CONSTRUCION # '''
-invalid_opt = '''
-Err: That's not a valid option!
-'''
+
+    # CONSTRUCCIÓN DFA DIRECTO # '''
 generate_diagram_msg = '''
-Would you like to generate and view the diagram? [y/n] (default: n)'''
+Generando diagramas...'''
 type_regex_msg = '''
-Type in a regular expression '''
+Expresión regular leída de regex.txt: '''
 type_string_msg = '''
-Type in a string '''
+Cadena leída de w_string.txt: '''
+accepted = 'Sí'
+not_accepted = 'No'
+time_msg = '\nTiempo para evaluar: {:.5E} segundos'
+belongs_msg_nfa = '¿La cadena pertenece a la expresión regular (NFA)?'
+belongs_msg_dfa = '¿La cadena pertenece a la expresión regular (DFA)?'
+expression_accepted = '\n\tExpresión aceptada!'
+parsed_tree = '\tÁrbol parseado:'
+err_invalid = '\n\tERR: Expresión inválida (falta paréntesis)'
+err_general = '\n\tERR: {}'
 
 if __name__ == "__main__":
     print(program_title)
-    opt = None
-    regex = None
-    method = None
 
-    while opt != 0:
-        print(main_menu)
-        opt = input('> ')
+    input_handler = InputHandler()
+    regex = input_handler.regex
+    regex_input = input_handler.input_string
 
-        if opt == '1':
-            print(type_regex_msg)
-            regex = input('> ')
+    print(type_regex_msg + regex)
+    print(type_string_msg + regex_input)
 
-            try:
-                reader = Reader(regex)
-                tokens = reader.CreateTokens()
-                parser = Parser(tokens)
-                tree = parser.Parse()
+    try:
+        thompson_reader = ThompsonReader(regex)
+        tokens = thompson_reader.CreateTokens()
+        parser = Parser(tokens)
+        tree = parser.Parse()
 
-                direct_reader = DirectReader(regex)
-                direct_tokens = direct_reader.CreateTokens()
-                direct_parser = Parser(direct_tokens)
-                direct_tree = direct_parser.Parse()
-                print('\n\tExpression accepted!')
-                print('\tParsed tree:', tree)
+        print(expression_accepted)
+        print(parsed_tree, tree)
 
-            except AttributeError as e:
-                print(f'\n\tERR: Invalid expression (missing parenthesis)')
+    except AttributeError as e:
+        print(err_invalid)
+        exit(1)
 
-            except Exception as e:
-                print(f'\n\tERR: {e}')
+    except Exception as e:
+        print(err_general.format(e))
+        exit(1)
 
-        if opt == '2':
-            if not regex:
-                print('\n\tERR: You need to set a regular expression first!')
-                opt = None
-            else:
-                print(submenu)
-                method = input('> ')
+    # Thompson
+    nfa = NFA(tree, thompson_reader.GetSymbols(), regex_input)
+    start_time = time()
+    nfa_regex = nfa.EvalRegex()
+    stop_time = time()
+    print(time_msg.format(stop_time - start_time))
+    print(belongs_msg_nfa)
+    print('>', accepted if nfa_regex == 'Si' else not_accepted)
 
-                if method == '1':
-                    print(thompson_msg)
-                    print(type_string_msg)
-                    regex_input = input('> ')
+    dfa = DFA(nfa.trans_func, nfa.symbols, nfa.curr_state, nfa.accepting_states, regex_input)
+    dfa.TransformNFAToDFA()
+    start_time = time()
+    dfa_regex = dfa.EvalRegex()
+    stop_time = time()
+    print(time_msg.format(stop_time - start_time))
+    print(belongs_msg_dfa)
+    print('>', accepted if dfa_regex == 'Si' else not_accepted)
 
-                    nfa = NFA(tree, reader.GetSymbols(), regex_input)
-                    start_time = process_time()
-                    nfa_regex = nfa.EvalRegex()
-                    stop_time = process_time()
-
-                    print('\nTime to evaluate: {:.5E} seconds'.format(
-                        stop_time - start_time))
-                    print('Does the string belongs to the regex (NFA)?')
-                    print('>', nfa_regex)
-
-                    dfa = DFA(nfa.trans_func, nfa.symbols,
-                              nfa.curr_state, nfa.accepting_states, regex_input)
-                    dfa.TransformNFAToDFA()
-                    start_time = process_time()
-                    dfa_regex = dfa.EvalRegex()
-                    stop_time = process_time()
-                    print('\nTime to evaluate: {:.5E} seconds'.format(
-                        stop_time - start_time))
-                    print('Does the string belongs to the regex (DFA)?')
-                    print('>', dfa_regex)
-
-                    print(generate_diagram_msg)
-                    generate_diagram = input('> ')
-
-                    if generate_diagram == 'y':
-                        nfa.WriteNFADiagram()
-                        dfa.GraphDFA()
-
-                elif method == '2':
-                    print(direct_dfa_msg)
-                    print(type_string_msg)
-                    regex_input = input('> ')
-                    ddfa = DDFA(
-                        direct_tree, direct_reader.GetSymbols(), regex_input)
-                    start_time = process_time()
-                    ddfa_regex = ddfa.EvalRegex()
-                    stop_time = process_time()
-                    print('\nTime to evaluate: {:.5E} seconds'.format(
-                        stop_time - start_time))
-                    print('Does the string belongs to the regex?')
-                    print('>', ddfa_regex)
-
-                    print(generate_diagram_msg)
-                    generate_diagram = input('> ')
-
-                    if generate_diagram == 'y':
-                        ddfa.GraphDFA()
-
-                    ddfa = None
-
-                elif method == '3':
-                    continue
-
-                else:
-                    print(invalid_opt)
-
-        elif opt == '0':
-            print('See you later!')
-            exit(1)
+    print(generate_diagram_msg)
+    nfa.WriteNFADiagram()
+    dfa.GraphDFA()

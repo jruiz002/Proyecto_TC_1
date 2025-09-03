@@ -15,13 +15,13 @@ class DFA:
 
         # Propiedades de un AF
         self.symbols = symbols
-        self.trans_func = dict()
-        self.states = dict()
-        self.accepting_states = list()
+        self.trans_func = {}
+        self.states = {}
+        self.accepting_states = []
         self.initial_state = 'A'
 
         try:
-            self.symbols.remove('e')
+            self.symbols.remove('ε')
         except:
             pass
 
@@ -29,7 +29,7 @@ class DFA:
         self.iterations = 0
         self.regex = regex
 
-    def MoveTo(self, node_id, eval_symbol='e', array=[], add_initial=False, move_once=False):
+    def MoveTo(self, node_id, eval_symbol='ε', array=[], add_initial=False, move_once=False):
 
         arr = array
         node = self.nodes[node_id]
@@ -40,7 +40,7 @@ class DFA:
             node.Mark()
             # Obtenemos los siguientes estados
             next_states = [int(s) for s in node.next_states[eval_symbol]]
-            if eval_symbol == 'e':
+            if eval_symbol == 'ε':
                 arr = [*next_states]
             else:
                 arr = [*next_states]
@@ -65,6 +65,7 @@ class DFA:
             self.states[curr_state] = closure
             if self.final_nfa_state in closure:
                 self.accepting_states.append(curr_state)
+            self.trans_func[curr_state] = {}
 
         # Por cada símbolo dentro del set...
         for symbol in self.symbols:
@@ -129,6 +130,10 @@ class DFA:
 
     def EvalRegex(self):
         curr_state = 'A'
+        
+        # Si no hay estados o trans_func está vacío, retornar 'No'
+        if not self.states or not self.trans_func:
+            return 'No'
 
         for symbol in self.regex:
             # El símbolo no está dentro del set
@@ -139,25 +144,55 @@ class DFA:
                 curr_state = self.trans_func[curr_state][symbol]
             except:
                 # Volvemos al inicio y verificamos que sea un estado de aceptacion
-                if curr_state in self.accepting_states and symbol in self.trans_func['A']:
+                if curr_state in self.accepting_states and 'A' in self.trans_func and symbol in self.trans_func['A']:
                     curr_state = self.trans_func['A'][symbol]
                 else:
                     return 'No'
 
-        return 'Yes' if curr_state in self.accepting_states else 'No'
+        return 'Si' if curr_state in self.accepting_states else 'No'
 
     def GetDStates(self):
         for state, values in self.trans_table.items():
             self.nodes.append(Node(int(state), values))
 
     def TransformNFAToDFA(self):
+        # Asegurarse de que trans_table no esté vacío
+        if not self.trans_table:
+            print("Error: La tabla de transiciones del NFA está vacía.")
+            return
+            
         self.GetDStates()
+        
+        # Verificar que se hayan creado nodos
+        if not self.nodes:
+            print("Error: No se pudieron crear nodos para el DFA.")
+            return
+            
         self.EvaluateClosure([], 0, 'A')
+        
+        # Verificar que se hayan creado estados
+        if not self.states:
+            print("Error: No se pudieron crear estados para el DFA.")
+            return
 
     def GraphDFA(self):
         states = set(self.trans_func.keys())
         alphabet = set(self.symbols)
         initial_state = 'A'
+        
+        # Verificar que states no esté vacío
+        if not states:
+            print("Error: No hay estados en el DFA para generar el diagrama.")
+            return
+            
+        # Verificar que accepting_states no esté vacío
+        if not self.accepting_states:
+            print("Advertencia: No hay estados de aceptación en el DFA.")
+            
+        # Verificar que el estado inicial esté en states
+        if initial_state not in states:
+            print(f"Error: El estado inicial '{initial_state}' no está en el conjunto de estados.")
+            return
 
         dfa = SimpleDFA(states, alphabet, initial_state,
                         set(self.accepting_states), self.trans_func)

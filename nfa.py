@@ -1,3 +1,5 @@
+import re
+
 from graphviz import Digraph
 from pprint import pprint
 from nodes import Or
@@ -60,7 +62,7 @@ class NFA:
         self.dot.edge(
             str(initial_node),
             str(self.curr_state),
-            'e'
+            'ε'
         )
         self.curr_state += 1
 
@@ -78,7 +80,7 @@ class NFA:
         self.dot.edge(
             str(initial_node),
             str(self.curr_state),
-            'e'
+            'ε'
         )
 
         self.curr_state += 1
@@ -96,14 +98,14 @@ class NFA:
         self.dot.edge(
             str(mid_node),
             str(self.curr_state),
-            'e'
+            'ε'
         )
 
         # from second to last epsilon
         self.dot.edge(
             str(self.curr_state - 1),
             str(self.curr_state),
-            'e'
+            'ε'
         )
 
     def KleeneNode(self, node):
@@ -112,7 +114,7 @@ class NFA:
         self.dot.edge(
             str(self.curr_state - 1),
             str(self.curr_state),
-            'e'
+            'ε'
         )
 
         first_node = self.curr_state - 1
@@ -129,7 +131,7 @@ class NFA:
         self.dot.edge(
             str(self.curr_state),
             str(first_node + 1),
-            'e'
+            'ε'
         )
 
         self.curr_state += 1
@@ -138,14 +140,14 @@ class NFA:
         self.dot.edge(
             str(self.curr_state - 1),
             str(self.curr_state),
-            'e'
+            'ε'
         )
 
         # First epsilon to last state
         self.dot.edge(
             str(first_node),
             str(self.curr_state),
-            'e'
+            'ε'
         )
 
     def PlusNode(self, node):
@@ -166,7 +168,7 @@ class NFA:
         self.dot.edge(
             str(initial_node),
             str(self.curr_state),
-            'e'
+            'ε'
         )
         self.curr_state += 1
 
@@ -184,7 +186,7 @@ class NFA:
         self.dot.edge(
             str(initial_node),
             str(self.curr_state),
-            'e'
+            'ε'
         )
 
         self.curr_state += 1
@@ -193,7 +195,7 @@ class NFA:
         self.dot.edge(
             str(self.curr_state - 1),
             str(self.curr_state),
-            'e'
+            'ε'
         )
 
         self.curr_state += 1
@@ -202,48 +204,43 @@ class NFA:
         self.dot.edge(
             str(mid_node),
             str(self.curr_state),
-            'e'
+            'ε'
         )
 
         # from second to last epsilon
         self.dot.edge(
             str(self.curr_state - 1),
             str(self.curr_state),
-            'e'
+            'ε'
         )
 
     def GenerateTransitionTable(self):
+        trans_func = {str(s): {} for s in range(self.curr_state + 1)}
 
-        states = [i.replace('\t', '')
-                  for i in self.dot.source.split('\n') if '->' in i and '=' in i]
+        states = [line for line in self.dot.source.split('\n') if '->' in line]
 
-        self.trans_func = dict.fromkeys(
-            [str(s) for s in range(self.curr_state + 1)])
+        for line in states:
+            line = line.strip()
+            match = re.match(r'(\d+)\s*->\s*(\d+)(?:\s*\[label=(?:"(.+?)"|(\S+))\])?', line)
+            if match:
+                init, final, symbol_quoted, symbol_unquoted = match.groups()
+                symbol = symbol_quoted or symbol_unquoted
+                if symbol is None:
+                    symbol = 'ε'
+                if symbol in trans_func[init]:
+                    trans_func[init][symbol].append(final)
+                else:
+                    trans_func[init][symbol] = [final]
 
-        self.trans_func[str(self.curr_state)] = dict()
-
-        for state in states:
-            splitted = state.split(' ')
-            init = splitted[0]
-            final = splitted[2]
-
-            symbol_index = splitted[3].index('=')
-            symbol = splitted[3][symbol_index + 1]
-
-            try:
-                self.trans_func[init][symbol].append(final)
-            except:
-                self.trans_func[init] = {symbol: [final]}
-
-        return self.trans_func
+        return trans_func
 
     def EvalRegex(self):
         try:
             self.EvalNext(self.regex[0], '0', self.regex)
-            return 'Yes' if self.regexAccepted else 'No'
+            return 'Si' if self.regexAccepted else 'No'
         except RecursionError:
-            if self.regex[0] in self.symbols and self.regex[0] != 'e':
-                return 'Yes'
+            if self.regex[0] in self.symbols and self.regex[0] != 'ε':
+                return 'Si'
             else:
                 return 'No'
 
@@ -255,12 +252,12 @@ class NFA:
         transitions = self.trans_func[curr_state]
         for trans_symbol in transitions:
 
-            if trans_symbol == 'e':
-                if not eval_regex and str(self.accepting_states) in transitions['e']:
+            if trans_symbol == 'ε':
+                if not eval_regex and str(self.accepting_states) in transitions['ε']:
                     self.regexAccepted = True
                     return
 
-                for state in transitions['e']:
+                for state in transitions['ε']:
                     if self.regexAccepted != None:
                         break
                     self.EvalNext(eval_symbol, state, eval_regex)
@@ -279,7 +276,7 @@ class NFA:
 
                     elif str(self.accepting_states) != curr_state:
                         for state in transitions[trans_symbol]:
-                            self.EvalNext('e', state, None)
+                            self.EvalNext('ε', state, None)
                         if self.regexAccepted != None:
                             return
 
