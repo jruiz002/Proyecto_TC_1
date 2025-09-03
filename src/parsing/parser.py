@@ -1,5 +1,5 @@
-from tokens import TokenType
-from nodes import *
+from .tokens import TokenType
+from .nodes import *
 
 
 class Parser:

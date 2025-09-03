@@ -1,10 +1,11 @@
 import re
+from pprint import pprint
 
 from graphviz import Digraph
-from pprint import pprint
-from nodes import Or
-from tokens import TokenType
-from utils import WriteToFile
+
+from ..parsing import Or, Letter, Append, Kleene, Plus, Question, Expression
+from ..parsing.tokens import TokenType
+from ..utils.helpers import WriteToFile
 
 
 class NFA:

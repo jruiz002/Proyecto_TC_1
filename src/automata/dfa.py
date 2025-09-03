@@ -1,7 +1,9 @@
 from pprint import pprint
+
 from pythomata import SimpleDFA
 from graphviz import Digraph
-from utils import WriteToFile
+
+from ..utils.helpers import WriteToFile
 
 STATES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 

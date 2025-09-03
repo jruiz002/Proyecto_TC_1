@@ -1,4 +1,4 @@
-from tokens import Token, TokenType
+from ..parsing.tokens import Token, TokenType
 import string
 
 LETTERS = string.ascii_letters + string.digits + '.-_ε'

@@ -1,12 +1,18 @@
-from reader import ThompsonReader
-from parsing import Parser
-from nfa import NFA
-from dfa import DFA
+#!/usr/bin/env python3
 import os
+import sys
 from time import time
 
+# Add the project root to the Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from src.automata.dfa import DFA
+from src.automata.nfa import NFA
+from src.io.input_handler import InputHandler
+from src.io.reader import ThompsonReader
+from src.parsing.parser import Parser
+
 os.makedirs('output', exist_ok=True)
-from input_handler import InputHandler
 
 program_title = '''
 
