@@ -6,6 +6,14 @@ from time import time
 # Add the project root to the Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from src.automata.dfa_minimization import (
+    DFA_minimizado,
+    alcanzables,
+    particion_inicial,
+    refinar_hasta_estabilizar,
+    eval_minimized_dfa,
+    graph_minimized_dfa,
+)
 from src.automata.dfa import DFA
 from src.automata.nfa import NFA
 from src.io.input_handler import InputHandler
@@ -77,6 +85,7 @@ if __name__ == "__main__":
 
     dfa = DFA(nfa.trans_func, nfa.symbols, nfa.curr_state, nfa.accepting_states, regex_input)
     dfa.TransformNFAToDFA()
+
     start_time = time()
     dfa_regex = dfa.EvalRegex()
     stop_time = time()
@@ -84,6 +93,20 @@ if __name__ == "__main__":
     print(belongs_msg_dfa)
     print('>', accepted if dfa_regex == 'Si' else not_accepted)
 
+    # Minimización DFA
+    R = alcanzables(dfa)
+    P0 = particion_inicial(dfa, R)
+    P_final = refinar_hasta_estabilizar(dfa, P0)
+    min_states, min_sigma, min_initial, min_finals, min_delta = DFA_minimizado(dfa, P_final)
+
+    start_time = time()
+    min_res = eval_minimized_dfa(min_states, min_sigma, min_initial, min_finals, min_delta, regex_input)
+    stop_time = time()
+    print(time_msg.format(stop_time - start_time))
+    print('¿La cadena pertenece a la expresión regular (DFA minimizado)?')
+    print('>', accepted if min_res == 'Si' else not_accepted)
+
     print(generate_diagram_msg)
     nfa.WriteNFADiagram()
     dfa.GraphDFA()
+    graph_minimized_dfa(min_states, min_sigma, min_initial, min_finals, min_delta, 'MinDFA')

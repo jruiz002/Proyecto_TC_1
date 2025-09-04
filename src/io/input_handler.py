@@ -6,5 +6,6 @@ class InputHandler:
         self.input_string = self._read_file(string_file)
 
     def _read_file(self, path):
-        with open(path, 'r') as f:
+        # Read as UTF-8 so 'ε' is decoded correctly on Windows
+        with open(path, 'r', encoding='utf-8-sig') as f:
             return f.read().strip()
