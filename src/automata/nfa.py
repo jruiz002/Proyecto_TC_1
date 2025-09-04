@@ -31,6 +31,12 @@ class NFA:
         self.trans_func = self.GenerateTransitionTable()
         self.accepting_states = self.GetAcceptingState()
 
+    def _escape_label(self, s: str) -> str:
+        """Escape Graphviz DOT label specials (backslash and double-quote)."""
+        if s is None:
+            return ''
+        return s.replace('\\', r'\\').replace('"', r'\"')
+
     def Render(self, node):
         self.prev_state = self.curr_state
         method_name = node.__class__.__name__ + 'Node'
@@ -38,7 +44,7 @@ class NFA:
         return method(node)
 
     def LetterNode(self, node):
-        return node.value
+        return self._escape_label(node.value)
 
     def AppendNode(self, node):
 
@@ -228,6 +234,9 @@ class NFA:
                 symbol = symbol_quoted or symbol_unquoted
                 if symbol is None:
                     symbol = 'ε'
+                else:
+                    # Unescape common Graphviz label escapes: \\\\ -> \\, \" -> ", and preserve plain text
+                    symbol = symbol.replace('\\\\', '\\').replace('\\"', '"')
                 if symbol in trans_func[init]:
                     trans_func[init][symbol].append(final)
                 else:

@@ -2,6 +2,9 @@ from collections import deque, defaultdict
 
 from typing import Dict, Set, Iterable, Tuple, List
 from pythomata import SimpleDFA
+from graphviz import Source
+import warnings
+import re
 from ..utils.helpers import WriteToFile
 
 
@@ -227,10 +230,32 @@ def graph_minimized_dfa(nuevos_estados, nuevo_alfabeto, nuevo_inicial, nuevos_fi
     finals = set(nuevos_finales)
 
     dfa = SimpleDFA(states, alphabet, initial, finals, nueva_delta)
-    graph = dfa.trim().to_graphviz()
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            'ignore',
+            message='expect syntax error scanning invalid quoted string',
+            category=Warning,
+            module=r'graphviz\.quoting'
+        )
+        graph = dfa.trim().to_graphviz()
     graph.attr(rankdir='LR')
 
     source = graph.source
+
+    def _escape_label_content(s: str) -> str:
+        s = s.replace('\\', r'\\')
+        s = s.replace('"', r'\"')
+        return s
+
+    def _escape_labels_in_dot(dot: str) -> str:
+        def repl(m):
+            inner = m.group(1)
+            return f'label="{_escape_label_content(inner)}"'
+        return re.sub(r'label="([^"]*)"', repl, dot)
+
+    fixed_source = _escape_labels_in_dot(source)
+
     filepath = f'./output/{out_basename}.gv'
-    WriteToFile(filepath, source)
-    graph.render(filepath, format='pdf', view=True)
+    WriteToFile(filepath, fixed_source)
+    fixed_graph = Source(fixed_source)
+    fixed_graph.render(filepath, format='pdf', view=True)

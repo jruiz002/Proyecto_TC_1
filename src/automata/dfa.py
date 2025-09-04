@@ -1,7 +1,9 @@
 from pprint import pprint
 
 from pythomata import SimpleDFA
-from graphviz import Digraph
+from graphviz import Digraph, Source
+import warnings
+import re
 
 from ..utils.helpers import WriteToFile
 
@@ -198,12 +200,40 @@ class DFA:
         dfa = SimpleDFA(states, alphabet, initial_state,
                         set(self.accepting_states), self.trans_func)
 
-        graph = dfa.trim().to_graphviz()
+        # Build graph while silencing noisy quoting warnings from graphviz
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                'ignore',
+                message='expect syntax error scanning invalid quoted string',
+                category=Warning,
+                module=r'graphviz\.quoting'
+            )
+            graph = dfa.trim().to_graphviz()
         graph.attr(rankdir='LR')
 
+        # Escape labels in DOT (backslashes and quotes) to avoid Graphviz syntax errors
         source = graph.source
-        WriteToFile('./output/DFA.gv', source)
-        graph.render('./output/DFA.gv', format='pdf', view=True)
+
+        def _escape_label_content(s: str) -> str:
+            # Replace backslash first, then quotes
+            s = s.replace('\\', r'\\')
+            s = s.replace('"', r'\"')
+            return s
+
+        def _escape_labels_in_dot(dot: str) -> str:
+            # Replace every label="..." properly escaping the content
+            def repl(m):
+                inner = m.group(1)
+                return f'label="{_escape_label_content(inner)}"'
+
+            return re.sub(r'label="([^"]*)"', repl, dot)
+
+        fixed_source = _escape_labels_in_dot(source)
+
+        # Render from the corrected source
+        WriteToFile('./output/DFA.gv', fixed_source)
+        fixed_graph = Source(fixed_source)
+        fixed_graph.render('./output/DFA.gv', format='pdf', view=True)
 
 
 class Node:
