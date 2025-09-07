@@ -1,13 +1,8 @@
-from pprint import pprint
-
 from pythomata import SimpleDFA
-from graphviz import Digraph, Source
+from graphviz import Source
 import warnings
 import re
-
 from ..utils.helpers import WriteToFile
-
-STATES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 class DFA:
     def __init__(self, trans_table, symbols, states, final_nfa_state, regex):
@@ -31,6 +26,19 @@ class DFA:
         self.nodes = []
         self.iterations = 0
         self.regex = regex
+
+    def get_state_name(self, num):
+        """Generate letter-based state names: A-Z, then AA-AZ, BA-BZ, etc."""
+        if num < 26:
+            return chr(65 + num)
+        result = ''
+        while num >= 0:
+            remainder = num % 26
+            result = chr(65 + remainder) + result
+            num = (num // 26) - 1
+            if num < 0:
+                break
+        return result
 
     def MoveTo(self, node_id, eval_symbol='ε', array=[], add_initial=False, move_once=False):
 
@@ -92,7 +100,7 @@ class DFA:
                 # Si este nuevo estado no existe es nuevo...
                 if not new_set in self.states.values():
                     self.iterations += 1
-                    new_state = STATES[self.iterations]
+                    new_state = self.get_state_name(self.iterations)
 
                     # Se crea la entrada en la función de transición
                     try:
@@ -146,11 +154,7 @@ class DFA:
             try:
                 curr_state = self.trans_func[curr_state][symbol]
             except:
-                # Volvemos al inicio y verificamos que sea un estado de aceptacion
-                if curr_state in self.accepting_states and 'A' in self.trans_func and symbol in self.trans_func['A']:
-                    curr_state = self.trans_func['A'][symbol]
-                else:
-                    return 'No'
+                return 'No'
 
         return 'Si' if curr_state in self.accepting_states else 'No'
 

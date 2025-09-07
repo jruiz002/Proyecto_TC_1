@@ -1,12 +1,6 @@
 import re
-from pprint import pprint
-
 from graphviz import Digraph
-
-from ..parsing import Or, Letter, Append, Kleene, Plus, Question, Expression
-from ..parsing.tokens import TokenType
 from ..utils.helpers import WriteToFile
-
 
 class NFA:
     def __init__(self, tree, symbols, regex):
@@ -32,7 +26,6 @@ class NFA:
         self.accepting_states = self.GetAcceptingState()
 
     def _escape_label(self, s: str) -> str:
-        """Escape Graphviz DOT label specials (backslash and double-quote)."""
         if s is None:
             return ''
         return s.replace('\\', r'\\').replace('"', r'\"')
@@ -244,61 +237,38 @@ class NFA:
 
         return trans_func
 
+    def epsilon_closure(self, states):
+        """Compute the epsilon-closure of a set of states iteratively."""
+        closure = set(states)
+        stack = list(states)
+        while stack:
+            state = stack.pop()
+            if 'ε' in self.trans_func.get(state, {}):
+                for next_state in self.trans_func[state]['ε']:
+                    if next_state not in closure:
+                        closure.add(next_state)
+                        stack.append(next_state)
+        return closure
+
     def EvalRegex(self):
-        try:
-            self.EvalNext(self.regex[0], '0', self.regex)
-            return 'Si' if self.regexAccepted else 'No'
-        except RecursionError:
-            if self.regex[0] in self.symbols and self.regex[0] != 'ε':
-                return 'Si'
-            else:
-                return 'No'
+        """Iterative NFA simulation to check if the input string is accepted."""
+        # Assuming initial state is '0' and single accepting state
+        initial_state = '0'
+        accepting_state = str(self.accepting_states)  # Convert to str for consistency (original treats as single state)
 
-    def EvalNext(self, eval_symbol, curr_state, eval_regex):
+        # Start with epsilon-closure of initial state
+        current_states = self.epsilon_closure([initial_state])
 
-        if self.regexAccepted != None:
-            return
+        # Process each symbol in the input string (self.regex)
+        for symbol in self.regex:
+            next_states = set()
+            for state in current_states:
+                if symbol in self.trans_func.get(state, {}):
+                    next_states.update(self.trans_func[state][symbol])
+            current_states = self.epsilon_closure(next_states)
 
-        transitions = self.trans_func[curr_state]
-        for trans_symbol in transitions:
-
-            if trans_symbol == 'ε':
-                if not eval_regex and str(self.accepting_states) in transitions['ε']:
-                    self.regexAccepted = True
-                    return
-
-                for state in transitions['ε']:
-                    if self.regexAccepted != None:
-                        break
-                    self.EvalNext(eval_symbol, state, eval_regex)
-
-            elif trans_symbol == eval_symbol:
-                next_regex = eval_regex[1:]
-                try:
-                    next_symbol = next_regex[0]
-                except:
-                    next_symbol = None
-
-                if not next_symbol:
-                    if str(self.accepting_states) in transitions[trans_symbol]:
-                        self.regexAccepted = True
-                        return
-
-                    elif str(self.accepting_states) != curr_state:
-                        for state in transitions[trans_symbol]:
-                            self.EvalNext('ε', state, None)
-                        if self.regexAccepted != None:
-                            return
-
-                if self.regexAccepted != None:
-                    return
-
-                for state in transitions[trans_symbol]:
-                    if not next_symbol and str(state) == self.accepting_states:
-                        self.regexAccepted = True
-                        return
-
-                    self.EvalNext(next_symbol, state, next_regex)
+        # Check if accepting state is in current states
+        return 'Si' if accepting_state in current_states else 'No'
 
     def GetAcceptingState(self):
         self.dot.node(str(self.curr_state), shape='doublecircle')

@@ -1,12 +1,8 @@
-from collections import deque, defaultdict
-
-from typing import Dict, Set, Iterable, Tuple, List
 from pythomata import SimpleDFA
 from graphviz import Source
 import warnings
 import re
 from ..utils.helpers import WriteToFile
-
 
 def alcanzables(dfa):
     """
@@ -43,7 +39,6 @@ def particion_inicial(dfa, R):
     Devuelve la partición inicial de estados del DFA.
     """
     finales = set(dfa.accepting_states)
-    R_set = set(R)
 
     bloque_finales = [q for q in R if q in finales]
     bloque_no_finales = [q for q in R if q not in finales]

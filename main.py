@@ -26,11 +26,11 @@ program_title = '''
 
 #        AUTÓMATAS FINITOS        #
 
-Genera NFA y DFA basados en una expresión regular y compara tiempos simulando una cadena!
+Genera AFN, AFD y AFD minimizado basados en una expresión regular y compara tiempos simulando una cadena
 '''
 direct_dfa_msg = '''
 
-    # CONSTRUCCIÓN DFA DIRECTO # '''
+    # CONSTRUCCIÓN AFD DIRECTO # '''
 generate_diagram_msg = '''
 Generando diagramas...'''
 type_regex_msg = '''
@@ -40,8 +40,8 @@ Cadena leída de w_string.txt: '''
 accepted = 'Sí'
 not_accepted = 'No'
 time_msg = '\nTiempo para evaluar: {:.5E} segundos'
-belongs_msg_nfa = '¿La cadena pertenece a la expresión regular (NFA)?'
-belongs_msg_dfa = '¿La cadena pertenece a la expresión regular (DFA)?'
+belongs_msg_nfa = '¿La cadena pertenece a la expresión regular (AFN)?'
+belongs_msg_dfa = '¿La cadena pertenece a la expresión regular (AFD)?'
 expression_accepted = '\n\tExpresión aceptada!'
 parsed_tree = '\tÁrbol parseado:'
 err_invalid = '\n\tERR: Expresión inválida (falta paréntesis)'
@@ -75,8 +75,8 @@ if __name__ == "__main__":
         exit(1)
 
     # Thompson
-    nfa = NFA(tree, thompson_reader.GetSymbols(), regex_input)
     start_time = time()
+    nfa = NFA(tree, thompson_reader.GetSymbols(), regex_input)
     nfa_regex = nfa.EvalRegex()
     stop_time = time()
     print(time_msg.format(stop_time - start_time))
@@ -84,9 +84,8 @@ if __name__ == "__main__":
     print('>', accepted if nfa_regex == 'Si' else not_accepted)
 
     dfa = DFA(nfa.trans_func, nfa.symbols, nfa.curr_state, nfa.accepting_states, regex_input)
-    dfa.TransformNFAToDFA()
-
     start_time = time()
+    dfa.TransformNFAToDFA()
     dfa_regex = dfa.EvalRegex()
     stop_time = time()
     print(time_msg.format(stop_time - start_time))
@@ -94,19 +93,19 @@ if __name__ == "__main__":
     print('>', accepted if dfa_regex == 'Si' else not_accepted)
 
     # Minimización DFA
+    start_time = time()
     R = alcanzables(dfa)
     P0 = particion_inicial(dfa, R)
     P_final = refinar_hasta_estabilizar(dfa, P0)
     min_states, min_sigma, min_initial, min_finals, min_delta = DFA_minimizado(dfa, P_final)
-
-    start_time = time()
     min_res = eval_minimized_dfa(min_states, min_sigma, min_initial, min_finals, min_delta, regex_input)
     stop_time = time()
     print(time_msg.format(stop_time - start_time))
-    print('¿La cadena pertenece a la expresión regular (DFA minimizado)?')
+    print('¿La cadena pertenece a la expresión regular (AFD minimizado)?')
     print('>', accepted if min_res == 'Si' else not_accepted)
 
     print(generate_diagram_msg)
     nfa.WriteNFADiagram()
     dfa.GraphDFA()
     graph_minimized_dfa(min_states, min_sigma, min_initial, min_finals, min_delta, 'MinDFA')
+    

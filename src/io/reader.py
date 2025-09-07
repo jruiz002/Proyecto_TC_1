@@ -6,7 +6,6 @@ _META = set('()[]|*+?\\')
 _PUNCT = ''.join(ch for ch in string.punctuation if ch not in _META)
 LETTERS = string.ascii_letters + string.digits + _PUNCT + 'ε'
 
-
 class BaseReader:
     def __init__(self, string: str):
         self.string = iter(string.replace(' ', ''))

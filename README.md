@@ -1,6 +1,6 @@
 # Proyecto de Teoría de la Computación
 
-Este proyecto implementa autómatas finitos (NFA y DFA) a partir de expresiones regulares, permitiendo la conversión entre ellos y la validación de cadenas.
+Este proyecto implementa autómatas finitos (AFN, AFD y AFD minimizados) a partir de expresiones regulares, permitiendo la conversión entre ellos, su minimización y la validación de cadenas.
 
 ## Estructura del Proyecto
 
@@ -10,6 +10,7 @@ Proyecto_TC_1/
 │   ├── automata/          # Implementación de autómatas
 │   │   ├── __init__.py
 │   │   ├── dfa.py         # Implementación de DFA
+│   │   ├── dfa_minimization.py # Minimización de DFA
 │   │   └── nfa.py         # Implementación de NFA
 │   │
 │   ├── parsing/           # Análisis de expresiones regulares
@@ -61,4 +62,4 @@ pip install -r requirements.txt
 ## Notas
 
 - Los diagramas de los autómatas se generan en la carpeta `output/`
-- El programa muestra el tiempo de ejecución para la evaluación de la cadena tanto en NFA como en DFA
+- El programa muestra el tiempo de ejecución para la evaluación de la cadena en el NFA, DFA y DFA minimizado.
